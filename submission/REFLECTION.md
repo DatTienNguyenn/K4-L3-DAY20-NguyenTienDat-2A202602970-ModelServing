@@ -6,10 +6,10 @@
 >
 > `make verify` sẽ fail nếu còn placeholder chưa điền. Đó là cố ý.
 
-**Họ Tên:** _<Họ Tên>_
-**MSSV:** _<MSSV>_
-**Cohort:** _<A20-K1 / A20-K2 / ...>_
-**Ngày submit:** _<YYYY-MM-DD>_
+**Họ Tên:** Nguyễn Tiến Đạt
+**MSSV:** 2A202602970
+**Cohort:** A20-K4
+**Ngày submit:** 2026-10-06
 
 ---
 
@@ -17,23 +17,19 @@
 
 > Từ `make probe`. Paste output hoặc điền tay.
 
-- **OS:** _<macOS 14 / Windows 11 / Ubuntu 24.04 / ...>_
-- **CPU:** _<Apple M2 / Intel i7-12700H / AMD Ryzen 7 5800H>_
-- **Cores:** _<physical / logical>_
-- **CPU extensions:** _<AVX2 / AVX-512 / NEON / —>_
-- **RAM:** _<GB>_
-- **Accelerator:** _<NVIDIA RTX 4060 / Apple Metal / Vulkan / CPU only>_
-- **llama.cpp asset đã tải:** _<vd: llama-b10488-bin-macos-arm64.tar.gz>_
-- **Model đã dùng:** _<Gemma 4 E2B / Qwen3.5 0.8B>_ (`LAB_MODEL=`_<gemma4-e2b / qwen35-0.8b>_)
-- **Quantization:** _<primary>_ + _<compare>_ (từ `models/active.json`)
+- **OS:** Linux (Ubuntu 24.04 trên WSL2 Linux 6.6.87.2-microsoft-standard-WSL2 x86_64)
+- **CPU:** 12th Gen Intel(R) Core(TM) i7-1260P
+- **Cores:** 8 physical / 16 logical
+- **CPU extensions:** AVX2
+- **RAM:** 7.6 GB
+- **Accelerator:** NVIDIA GeForce MX570, 2048 MiB (CUDA backend / CPU runtime)
+- **llama.cpp asset đã tải:** llama.cpp b10488
+- **Model đã dùng:** Qwen3.5 0.8B (`LAB_MODEL=qwen35-0.8b`)
+- **Quantization:** Q4_K_M (primary) + UD-Q2_K_XL (compare) (từ `models/active.json`)
 
-**Chạy ở đâu:** _<laptop của tôi / Colab / Kaggle>_
-_(Nếu dùng cloud fallback: nói rõ vì sao — RAM < 8 GB, setup fail, v.v. Không mất điểm.)_
+**Chạy ở đâu:** laptop của tôi
 
-**Setup story** (≤ 80 chữ): điều gì cần thay đổi để lab chạy trên máy bạn? Có bước
-nào fail rồi phải workaround không?
-
-_Answer here._
+**Setup story** (≤ 80 chữ): Máy tính có 7.6 GB RAM (< 8 GB tối thiểu của Gemma 4 E2B), do đó tôi đã chọn model nhẹ hơn bằng cách xuất `LAB_MODEL=qwen35-0.8b` trước khi chạy `make setup`. Nhờ vậy đã tải thành công runtime prebuilt và bộ trọng số Qwen3.5 0.8B (~0.9 GB) nhanh chóng, không bị lỗi tràn bộ nhớ (OOM).
 
 ---
 
@@ -43,14 +39,10 @@ _Answer here._
 
 | Quantization | Size (GB) | Load (ms) | TTFT P50/P95 (ms) | TPOT P50/P95 (ms) | E2E P50/P95/P99 (ms) | Decode (tok/s) |
 |---|--:|--:|--:|--:|--:|--:|
-| UD-Q4_K_XL | | | | | | |
-| UD-Q2_K_XL | | | | | | |
+| Q4_K_M | 0.50 | 3172 | 432 / 654 | 43.6 / 46.4 | 2954 / 3559 / 3559 | 22.9 |
+| UD-Q2_K_XL | 0.39 | 4215 | 612 / 808 | 51.6 / 57.0 | 3797 / 4222 / 4222 | 19.4 |
 
-**Quan sát** (≤ 60 chữ): 2-bit nhanh hơn bao nhiêu, và **có đáng không**? Bạn đã thử
-hỏi cùng một câu trên cả hai (`make serve` vs `.venv/bin/python labs/02-serve/serve.py --compare`)
-chưa? Chất lượng khác nhau thế nào?
-
-_Answer here._
+**Quan sát** (≤ 60 chữ): Bản 2-bit chậm hơn 1.18x (19.4 vs 22.9 tok/s), TTFT và TPOT đều tăng, không đáng dùng. Hỏi cùng một câu, bản 4-bit trả lời mạch lạc, đúng trọng tâm; bản 2-bit câu từ lủng củng, suy luận nông do thất thoát thông tin.
 
 ---
 
@@ -60,22 +52,17 @@ _Answer here._
 
 | Users | RPS | P50 (ms) | P95 (ms) | P99 (ms) | Eff. concurrency | Failures |
 |--:|--:|--:|--:|--:|--:|--:|
-| 10 | | | | | | |
-| 50 | | | | | | |
+| 10 | 0.60 | 14000 | 23000 | 24000 | 8.2 | 0.0% |
+| 50 | 0.57 | 21000 | 52000 | 57000 | 14.8 | 0.0% |
 
-- **Offered load tăng 5×, throughput thực tăng:** _<X.XX>×_
-- **P95 tăng:** _<X.XX>×_
-- **Effective concurrency ở 50 users:** _<số>_ so với `--parallel` = _<số>_ slots
+- **Offered load tăng 5×, throughput thực tăng:** 0.94×
+- **P95 tăng:** 2.26×
+- **Effective concurrency ở 50 users:** 14.8 so với `--parallel` = 4 slots
 
 **Peak `llamacpp:n_busy_slots_per_decode`** (từ `make metrics` khi `make load-50` đang
-chạy): _<số>_ / _<slots>_ slots
+chạy): 4.00 / 4 slots
 
-**Saturation reading** (≤ 80 chữ): server của bạn bão hoà ở đâu, và **bằng chứng nào**
-thuyết phục bạn? Nếu P95 tăng nhanh hơn RPS thì phần latency thêm đó là queue time hay
-compute time — bạn biết bằng cách nào? Nếu bạn phải nâng goodput@SLO, bạn sẽ đổi knob
-nào **trước**, và vì sao knob đó?
-
-_Answer here._
+**Saturation reading** (≤ 80 chữ): Server bão hòa ngay từ 10 users: khi tăng tải 5x, RPS đi ngang/giảm nhẹ (0.94x) trong khi P95 phình 2.26x lên 52s. Độ trễ tăng thêm 100% là queue time vì 4 slots đều bận (requests_deferred=46, effective concurrency=14.8 vs 4 slots). Để nâng goodput@SLO 25s, tôi đổi threads=4 trước để tăng tốc độ decode, giải phóng slot nhanh hơn.
 
 ---
 
@@ -85,23 +72,20 @@ _Answer here._
 
 | Day | Piece | Real hay stub? |
 |---|---|---|
-| N16 Cloud/IaC | | |
-| N17 Data pipeline | | |
-| N18 Lakehouse | | |
-| N19 Vector + features | | |
-| N20 Serving | `llama-server` | real |
+| N16 Cloud/IaC | Local WSL2 machine | stub |
+| N17 Data pipeline | In-memory TOY_DOCS list | stub |
+| N18 Lakehouse | Python dict/list in RAM | stub |
+| N19 Vector + features | Keyword overlap search | stub |
+| N20 Serving | llama-server on :8080 | real |
 
 **Latency split** (mean của 3 query, từ output của `pipeline.py`):
 
-- embed: _<ms>_
-- retrieve: _<ms>_
-- llm: _<ms>_
-- **stage chiếm nhiều nhất:** _<stage>_ (_<%>_ của total)
+- embed: 0.0 ms
+- retrieve: 0.1 ms
+- llm: 6773.7 ms
+- **stage chiếm nhiều nhất:** llm (100% của total 6774.2 ms)
 
-**Reflection** (≤ 60 chữ): bottleneck ở đâu? Có khớp với kỳ vọng của bạn không? Nếu
-phải giảm latency của pipeline này 2×, bạn sẽ tấn công vào đâu?
-
-_Answer here._
+**Reflection** (≤ 60 chữ): Bottleneck nằm hoàn toàn ở LLM decode (100% thời gian), đúng như kỳ vọng vì retrieval là stub in-memory còn LLM chạy mô hình ngôn ngữ trên CPU. Muốn giảm 2x latency, phải tấn công vào LLM: giới hạn max_tokens đầu ra ngắn gọn và chạy với threads=4.
 
 ---
 
@@ -111,22 +95,19 @@ _Answer here._
 > một before/after thật (`benchmarks/01-tuning-tg128.md`). Đổi quantization,
 > `LAB_N_CTX`, hay `--parallel` rồi đo lại cũng được.
 
-**Change:** _<vd: hạ -t từ 16 xuống 8; vd: đổi sang UD-Q2_K_XL; vd: --parallel 4 → 8>_
+**Change:** Hạ số luồng từ 16 (toàn bộ logical cores) xuống 4 (chỉ dùng các P-cores vật lý)
 
 ```
-before:  <số + đơn vị>
-after:   <số + đơn vị>
-speedup: <X.Y>×
+before:  16.0 tok/s
+after:   40.6 tok/s
+speedup: 2.54×
 ```
 
 **Tại sao nó work** (1–2 đoạn — đây là phần grader đọc kỹ nhất):
 
-_Giải thích như đang nói với bạn ngồi cạnh. Bám vào **cơ chế**, không phải "vibes":
-memory bandwidth? vector width? cache residency? scheduling? queueing? Nếu kết quả
-**khác** với kỳ vọng từ deck — nói rõ, và giải thích vì sao. Grader thưởng điểm cho
-lập luận đúng về một kết quả bất ngờ, hơn là một con số đẹp không được giải thích._
+CPU Intel Core i7-1260P là kiến trúc lai Alder Lake gồm 4 nhân P-cores (hiệu năng cao, IPC lớn, xung boost cao) và 8 nhân E-cores (tiết kiệm điện). Khi chạy 16 luồng (-t 16), các worker threads bị phân bổ vào cả các luồng Hyper-Threading và E-cores, gây ra hiện tượng tranh chấp bộ đệm (cache thrashing), nghẽn bus bộ nhớ và đặc biệt là straggler effect (các P-cores phải chờ E-core chậm nhất trong barrier synchronization của ma trận).
 
-_Answer here._
+Khi hạ xuống 4 luồng (-t 4), hệ điều hành gán đúng 4 threads vào 4 nhân P-cores vật lý, tận dụng tối đa AVX2 và cache riêng mà không gặp xung đột luồng hay phải chờ các nhân E-cores chậm hơn. Điều này giúp tốc độ sinh token tăng vọt từ 16.0 lên 40.6 tok/s (tăng tốc 2.54 lần).
 
 ---
 
